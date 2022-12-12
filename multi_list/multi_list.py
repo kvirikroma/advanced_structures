@@ -183,24 +183,22 @@ class MultiList:
         else:
             return self._items_count
 
-    def move_item(self, source_path: MultiListPath, destination_path: MultiListPath):
-        if destination_path.startswith(source_path):
-            raise ValueError("Such move would create a loop")
+    def move(self, source_path: MultiListPath, destination_path: MultiListPath):
+        # if destination_path.startswith(source_path):
+        #     raise ValueError("Such move would create a loop")
         # source_node = self._find_node(source_path)
         # if not source_node:
         #     raise LookupError("Source path does not exist")
-        destination_list_parent = MultiListNode(None, None, self) if len(destination_path) == 1 \
-            else self._find_node(destination_path[:-1])
-        if destination_list_parent is None or \
-                destination_list_parent.child is None or \
-                destination_list_parent.child._items_count <= destination_path[-1]:
-            raise LookupError("Destination path does not exist")
-        try:
-            source_node = self._delete(source_path)
-        except LookupError:
-            raise LookupError("Source path does not exist")
-        result_node = self._append(source_node.value, destination_path)
-        result_node.child = source_node.child
+        # destination_list_parent = MultiListNode(None, None, self) if len(destination_path) == 1 \
+        #     else self._find_node(destination_path[:-1])
+        # if destination_list_parent is None or \
+        #         destination_list_parent.child is None or \
+        #         destination_list_parent.child._items_count < destination_path[-1]:
+        #     raise LookupError("Destination path does not exist")
+        # result_node = self._append(source_node.value, destination_path)
+        # result_node.child = source_node.child
+        # self.delete(source_path)
+        pass
 
     def swap(self, path1: MultiListPath, path2: MultiListPath):
         if path1.startswith(path2) or path2.startswith(path1):
@@ -232,7 +230,8 @@ class MultiList:
         for i in self._iterate(include_all_levels=False):
             node_copy = MultiListNode(i.value, None, i.child.make_full_copy() if i.child else None)
             if right_node:
-                right_node = right_node.right = node_copy
+                right_node.right = node_copy
+                right_node = node_copy
             else:
                 result.root = right_node = node_copy
         return result
