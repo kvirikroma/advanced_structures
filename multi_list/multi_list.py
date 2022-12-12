@@ -56,12 +56,12 @@ class MultiList:
         self.root: MultiListNode | None = None
         self._items_count = 0
 
-    def iterate(self, include_all_levels: bool = True):
+    def _iterate(self, include_all_levels: bool = True):
         iteration_item = self.root
         while iteration_item:
             yield iteration_item
             if include_all_levels and iteration_item.child:
-                yield from iteration_item.child.iterate(True)
+                yield from iteration_item.child._iterate(True)
             iteration_item = iteration_item.right
 
     def print_all(self, level: int = 0):
@@ -79,7 +79,7 @@ class MultiList:
             print("[", end='')
             first_printed = False
             index: int | None = 0
-            for item in current_list.iterate(include_all_levels=False):
+            for item in current_list._iterate(include_all_levels=False):
                 if first_printed:
                     print(", ", end='')
                 print(item.value, end='')
@@ -120,7 +120,7 @@ class MultiList:
             raise LookupError("Path does not exist")
         return node.value
 
-    def append(self, value, path: MultiListPath):
+    def _append(self, value, path: MultiListPath) -> MultiListNode:
         assert path[-1] >= 0
         parent_node = MultiListNode(None, None, self) if len(path) == 1 else self._find_node(path[:-1])
         if parent_node is None:
@@ -131,41 +131,111 @@ class MultiList:
                     raise LookupError("Path does not exist")
                 node = parent_node.child.root
                 if path[-1] == 0:
-                    parent_node.child.root = MultiListNode(value, right=node)
+                    result = parent_node.child.root = MultiListNode(value, right=node)
                 else:
                     for _ in range(path[-1] - 1):
                         node = node.right
-                    node.right = MultiListNode(value, right=node.right)
+                    result = node.right = MultiListNode(value, right=node.right)
                 parent_node.child._items_count += 1
+                return result
             else:
                 if path[-1] != 0:
                     raise LookupError("Path does not exist")
                 parent_node.child.root = MultiListNode(value)
                 parent_node.child._items_count = 1
+                return parent_node.child.root
         else:
             if path[-1] != 0:
                 raise LookupError("Path does not exist")
             parent_node.child = MultiList()
             parent_node.child.root = MultiListNode(value)
             parent_node.child._items_count = 1
+            return parent_node.child.root
+
+    def append(self, value, path: MultiListPath):
+        self._append(value, path)
+
+    def _delete(self, path: MultiListPath) -> MultiListNode:
+        assert path[-1] >= 0
+        parent_node = MultiListNode(None, None, self) if len(path) == 1 else self._find_node(path[:-1])
+        if parent_node is None or parent_node.child is None or parent_node.child._items_count <= path[-1]:
+            raise LookupError("Path does not exist")
+        if path[-1] == 0:
+            result = parent_node.child.root
+            parent_node.child.root = parent_node.child.root.right
+        else:
+            node = parent_node.child.root
+            for _ in range(path[-1] - 1):
+                node = node.right
+            result = node.right
+            node.right = node.right.right
+        parent_node.child._items_count -= 1
+        if parent_node.child._items_count == 0:
+            parent_node.child = None
+        return result
 
     def delete(self, path: MultiListPath):
-        pass
+        self._delete(path)
 
     def get_items_count(self, include_all_levels: bool = True) -> int:
         if include_all_levels:
-            return sum(bool(i) for i in self.iterate(include_all_levels=True))
+            return sum(bool(i) for i in self._iterate(include_all_levels=True))
         else:
             return self._items_count
 
     def move_item(self, source_path: MultiListPath, destination_path: MultiListPath):
-        pass
+        if destination_path.startswith(source_path):
+            raise ValueError("Such move would create a loop")
+        # source_node = self._find_node(source_path)
+        # if not source_node:
+        #     raise LookupError("Source path does not exist")
+        destination_list_parent = MultiListNode(None, None, self) if len(destination_path) == 1 \
+            else self._find_node(destination_path[:-1])
+        if destination_list_parent is None or \
+                destination_list_parent.child is None or \
+                destination_list_parent.child._items_count <= destination_path[-1]:
+            raise LookupError("Destination path does not exist")
+        try:
+            source_node = self._delete(source_path)
+        except LookupError:
+            raise LookupError("Source path does not exist")
+        result_node = self._append(source_node.value, destination_path)
+        result_node.child = source_node.child
+
+    def swap(self, path1: MultiListPath, path2: MultiListPath):
+        if path1.startswith(path2) or path2.startswith(path1):
+            raise ValueError("Such move would create a loop")
+        node1 = self._find_node(path1)
+        if not node1:
+            raise LookupError("path1 does not exist")
+        node2 = self._find_node(path2)
+        if not node2:
+            raise LookupError("path2 does not exist")
+        node1.child, node2.child, node1.value, node2.value = node2.child, node1.child, node2.value, node1.value
 
     def delete_level(self, level_number: int):
-        pass
+        if level_number < 0:
+            raise ValueError("Level must be more than 0")
+        elif level_number == 0:
+            return self.clear()
+        for i in self._iterate(include_all_levels=False):
+            if i.child is not None:
+                if level_number == 1:
+                    i.child = None
+                else:
+                    i.child.delete_level(level_number - 1)
 
-    def make_full_copy(self):
-        pass
+    def make_full_copy(self) -> "MultiList":
+        result = MultiList()
+        result._items_count = self._items_count
+        right_node = None
+        for i in self._iterate(include_all_levels=False):
+            node_copy = MultiListNode(i.value, None, i.child.make_full_copy() if i.child else None)
+            if right_node:
+                right_node = right_node.right = node_copy
+            else:
+                result.root = right_node = node_copy
+        return result
 
     def clear(self):
         self.__init__()
