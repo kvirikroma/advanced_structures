@@ -42,6 +42,9 @@ class MultiListPath:
     def __bool__(self):
         return bool(self._sequence)
 
+    def __eq__(self, other: "MultiListPath"):
+        return self._sequence == other._sequence
+
     def startswith(self, other: "MultiListPath"):
         if len(other) > len(self):
             return False
@@ -179,26 +182,39 @@ class MultiList:
 
     def get_items_count(self, include_all_levels: bool = True) -> int:
         if include_all_levels:
-            return sum(bool(i) for i in self._iterate(include_all_levels=True))
+            return sum(1 for _ in self._iterate(include_all_levels=True))
         else:
             return self._items_count
 
     def move(self, source_path: MultiListPath, destination_path: MultiListPath):
-        # if destination_path.startswith(source_path):
-        #     raise ValueError("Such move would create a loop")
-        # source_node = self._find_node(source_path)
-        # if not source_node:
-        #     raise LookupError("Source path does not exist")
-        # destination_list_parent = MultiListNode(None, None, self) if len(destination_path) == 1 \
-        #     else self._find_node(destination_path[:-1])
-        # if destination_list_parent is None or \
-        #         destination_list_parent.child is None or \
-        #         destination_list_parent.child._items_count < destination_path[-1]:
-        #     raise LookupError("Destination path does not exist")
-        # result_node = self._append(source_node.value, destination_path)
-        # result_node.child = source_node.child
-        # self.delete(source_path)
-        pass
+        """
+        This action completes in 2 steps:
+        1. Remove node on source_path
+        2. Insert it on destination_path
+        Considering that, destination_path should be specified as if source node was already removed
+        """
+        assert source_path[-1] >= 0 and destination_path[-1] >= 0
+        if source_path == destination_path:
+            raise ValueError("Source and destination paths cannot be the same")
+        if destination_path.startswith(source_path):
+            raise ValueError("Such move would create a loop")
+        source_node = self._find_node(source_path)
+        if not source_node:
+            raise LookupError("Source path does not exist")
+        destination_list_parent = MultiListNode(None, None, self) if len(destination_path) == 1 \
+            else self._find_node(destination_path[:-1])
+        if destination_list_parent is None or \
+                destination_list_parent.child is None or \
+                destination_list_parent.child._items_count < destination_path[-1]:
+            raise LookupError("Destination path does not exist")
+        self.delete(source_path)
+        try:
+            result_node = self._append(source_node.value, destination_path)
+            result_node.child = source_node.child
+        except LookupError:
+            result_node = self._append(source_node.value, source_path)
+            result_node.child = source_node.child
+            raise LookupError("Destination path does not exist")
 
     def swap(self, path1: MultiListPath, path2: MultiListPath):
         if path1.startswith(path2) or path2.startswith(path1):
