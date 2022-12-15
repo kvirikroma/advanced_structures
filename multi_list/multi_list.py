@@ -191,7 +191,9 @@ class MultiList:
         This action completes in 2 steps:
         1. Remove node on source_path
         2. Insert it on destination_path
-        Considering that, destination_path should be specified as if source node was already removed
+        Considering that, destination_path should be specified as if source node was already removed.
+        This behaviour guarantees that the item that was on source_path before the action
+        will appear on destination_path after it
         """
         assert source_path[-1] >= 0 and destination_path[-1] >= 0
         if source_path == destination_path:
@@ -201,12 +203,6 @@ class MultiList:
         source_node = self._find_node(source_path)
         if not source_node:
             raise LookupError("Source path does not exist")
-        destination_list_parent = MultiListNode(None, None, self) if len(destination_path) == 1 \
-            else self._find_node(destination_path[:-1])
-        if destination_list_parent is None or \
-                destination_list_parent.child is None or \
-                destination_list_parent.child._items_count < destination_path[-1]:
-            raise LookupError("Destination path does not exist")
         self.delete(source_path)
         try:
             result_node = self._append(source_node.value, destination_path)
@@ -251,6 +247,12 @@ class MultiList:
             else:
                 result.root = right_node = node_copy
         return result
+
+    def delete_child(self, path: MultiListPath):
+        node = self._find_node(path)
+        if not node:
+            raise LookupError("Path does not exist")
+        node.child = None
 
     def clear(self):
         self.__init__()
