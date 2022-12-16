@@ -8,7 +8,7 @@ class MultiListCommandInterface:
         self.path_separator = MultiListPath('').separator
         self.item_type = str
         self.commands = {
-            "type": self.item_type,
+            "type": self.control_item_type,
             "separator": self.control_path_separator,
             "help": self.help,
             "size": self.get_size,
@@ -32,7 +32,7 @@ class MultiListCommandInterface:
                 print(f"Unrecognized command '{command[0]}'")
                 print("Enter 'help' for more information")
             try:
-                self.commands[command[0]](command[1:])
+                self.commands[command[0]](*command[1:])
             except TypeError:
                 print("Invalid parameters")
 
@@ -54,20 +54,40 @@ class MultiListCommandInterface:
             "clear - clear the multi-list\n"
         )
 
-    def item_type(self, action: str, item_type: str = None):
-        pass
+    def control_item_type(self, action: str, item_type: str = None):
+        if action == 'get':
+            print(self.item_type)
+        elif action == 'set':
+            if item_type == 'int':
+                self.item_type = int
+            elif item_type == 'str':
+                self.item_type = str
+            elif item_type == 'float':
+                self.item_type = float
+            else:
+                print("Error: type should be in [int, str, float]")
+        else:
+            print("Invalid action type: must be 'get' or 'set'")
 
     def control_path_separator(self, action: str, separator: str = None):
-        pass
+        if action == 'get':
+            print(self.path_separator)
+        elif action == 'set':
+            if isinstance(separator, str) and len(separator) == 1:
+                self.path_separator = separator
+            else:
+                print("Error: separator must be specified and be 1-character string")
+        else:
+            print("Invalid action type: must be 'get' or 'set'")
 
     def get_size(self):
-        pass
+        print(f"Size: {self.lst.get_items_count(include_all_levels=True)}")
 
     def get_levels_count(self):
-        pass
+        print(f"Levels: {self.lst.deepest_level_number() + 1}")
 
     def print_all(self):
-        pass
+        self.lst.print_all()
 
     def add_item(self, path: str, item: str | int):
         pass

@@ -94,6 +94,13 @@ class MultiList:
             print("]", end='')
         print()
 
+    def deepest_level_number(self, level: int = 0):
+        iteration_item = self.root
+        while iteration_item:
+            if iteration_item.child:
+                return iteration_item.child.deepest_level_number(level + 1)
+        return level
+
     def _find_node(self, path: MultiListPath) -> MultiListNode | None:
         if not path:
             return None
