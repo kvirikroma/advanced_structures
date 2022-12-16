@@ -1,4 +1,4 @@
-from typing import Optional, Iterable, Union
+from typing import Optional, Iterable, Union, Deque, Tuple
 from collections import deque
 
 
@@ -67,27 +67,33 @@ class MultiList:
                 yield from iteration_item.child._iterate(True)
             iteration_item = iteration_item.right
 
-    def print_all(self, level: int = 0):
-        levels_to_print = deque(((None, self, level), ))
+    def print_all(self, level: int = 0, path_separator: str = None, highlight_string_values: bool = False):
+        if not path_separator:
+            path_separator = MultiListPath('').separator
+        levels_to_print: Deque[Tuple[MultiListPath | None, MultiList, int]] = deque(((None, self, level), ))
         previous_level = None
         while levels_to_print:
-            parent_index, current_list, current_level = levels_to_print.popleft()
+            parent_path, current_list, current_level = levels_to_print.popleft()
             if previous_level != current_level:
                 if previous_level is not None:
                     print()
                 print(f"Level {current_level}:", end='')
             print(", " if previous_level == current_level else " ", end='')
-            if parent_index is not None:
-                print(f"{parent_index}:", end='')
+            if parent_path is not None:
+                print(f"{str(parent_path)}:", end='')
             print("[", end='')
             first_printed = False
             index: int | None = 0
             for item in current_list._iterate(include_all_levels=False):
                 if first_printed:
                     print(", ", end='')
-                print(item.value, end='')
+                value = item.value
+                print(repr(value) if highlight_string_values and isinstance(value, str) else value, end='')
                 if item.child:
-                    levels_to_print.append((index, item.child, current_level + 1))
+                    levels_to_print.append((
+                        MultiListPath((*(parent_path or tuple()), index), separator=path_separator),
+                        item.child, current_level + 1
+                    ))
                 first_printed = True
                 index += 1
             previous_level = current_level
@@ -96,10 +102,12 @@ class MultiList:
 
     def deepest_level_number(self, level: int = 0):
         iteration_item = self.root
+        max_deep = level
         while iteration_item:
             if iteration_item.child:
-                return iteration_item.child.deepest_level_number(level + 1)
-        return level
+                max_deep = max(max_deep, iteration_item.child.deepest_level_number(level + 1))
+            iteration_item = iteration_item.right
+        return max_deep
 
     def _find_node(self, path: MultiListPath) -> MultiListNode | None:
         if not path:
@@ -129,6 +137,12 @@ class MultiList:
         if not node:
             raise LookupError("Path does not exist")
         return node.value
+
+    def change_value(self, new_value, path: MultiListPath):
+        node = self._find_node(path)
+        if not node:
+            raise LookupError("Path does not exist")
+        node.value = new_value
 
     def _append(self, value, path: MultiListPath) -> MultiListNode:
         assert path[-1] >= 0
@@ -259,6 +273,8 @@ class MultiList:
         node = self._find_node(path)
         if not node:
             raise LookupError("Path does not exist")
+        if not node.child:
+            raise LookupError("Node at this path has no child")
         node.child = None
 
     def clear(self):
