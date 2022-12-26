@@ -77,7 +77,7 @@ class MultiList:
             if previous_level != current_level:
                 if previous_level is not None:
                     print()
-                print(f"Level {current_level}:", end='')
+                print(f"Level {current_level} -", end='')
             print(", " if previous_level == current_level else " ", end='')
             if parent_path is not None:
                 print(f"{str(parent_path)}:", end='')
