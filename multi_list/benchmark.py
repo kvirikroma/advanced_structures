@@ -8,9 +8,9 @@ from ordered_set import OrderedSet
 from multi_list import MultiList, MultiListPath
 
 
-BRANCHING_PROBABILITY = 0.4
-# VALUE_GENERATION_RANGE = (0, 255)
-VALUE_GENERATION_RANGE = (-2147483648, 2147483647)
+DEFAULT_BRANCHING_PROBABILITY = 0.1
+VALUE_GENERATION_RANGE = (0, 255)
+# VALUE_GENERATION_RANGE = (-2147483648, 2147483647)
 
 
 class HashablePath(MultiListPath, Hashable):
@@ -21,7 +21,7 @@ class HashablePath(MultiListPath, Hashable):
         return self._sequence == other._sequence and self.separator == other.separator
 
 
-def test(items_count: int):
+def test(items_count: int, print_tree: bool = False, branching_probability: int = DEFAULT_BRANCHING_PROBABILITY):
     lst = MultiList()
     paths = OrderedSet()
     appendable_paths = OrderedSet()
@@ -30,8 +30,7 @@ def test(items_count: int):
         full_appending_time_start = time_ns()
         value_to_add = randint(*VALUE_GENERATION_RANGE)
         if paths:
-            dice = random()
-            if dice < BRANCHING_PROBABILITY:
+            if random() < branching_probability:
                 parent_path = choice((*paths,))
                 new_path = MultiListPath((*parent_path, 0))
                 if lst.exists(new_path):
@@ -52,7 +51,8 @@ def test(items_count: int):
         paths.add(HashablePath((*path, )))
         appendable_paths.add(HashablePath((*path, )))
         result[1].append(time_ns() - full_appending_time_start)
-    # lst.print_all()
+    if print_tree:
+        lst.print_all()
     for path in paths:
         searching_time_start = time_ns()
         lst.find(path)
@@ -73,12 +73,34 @@ def main():
         except ValueError:
             raise argparse.ArgumentTypeError(f"{value} is an invalid positive int value")
         return int_value
+        
+    def float_01(value):
+        try:
+            value = float(value)
+            if value < 0:
+                raise ValueError
+            if value > 1:
+                raise ValueError
+        except ValueError:
+            raise argparse.ArgumentTypeError(f"{value} is an invalid value (should be between 0 and 1)")
+        return value
 
     parser = argparse.ArgumentParser()
-    # parser.add_argument("-p", "--file-path", help="A place where to save the resulting data")
     parser.add_argument("-i", "--iterations", help="Number of iterations", type=positive_int, required=True)
     parser.add_argument("-c", "--count", help="Count of items to work on", type=positive_int, required=True)
+    parser.add_argument(
+        "-b", "--branching_probability",
+        help="Probability of making an attempt to create a new branch while appending an item",
+        type=float_01, required=False, default=DEFAULT_BRANCHING_PROBABILITY
+    )
+    parser.add_argument(
+        "-p", "--print",
+        help="Print a tree that was built (only for cases when '--iterations' is 1)",
+        required=False, action=argparse.BooleanOptionalAction, default=False
+    )
     args = parser.parse_args()
+    if args.print and args.iterations != 1:
+        raise ValueError("Cannot print tree when '--iterations' is other than 1")
     executor = ProcessPoolExecutor()
     addition_time = []
     full_addition_time = []
@@ -86,7 +108,7 @@ def main():
     deletion_time = []
     try:
         for addition, full_addition, search, deletion in executor.map(
-                test, (args.count for _ in range(args.iterations))
+                test, *zip(*((args.count, args.print, args.branching_probability) for _ in range(args.iterations)))
         ):
             addition_time.extend(addition)
             full_addition_time.extend(full_addition)
