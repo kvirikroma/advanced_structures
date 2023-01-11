@@ -23,33 +23,35 @@ class HashablePath(MultiListPath, Hashable):
 
 def test(items_count: int, print_tree: bool = False, branching_probability: int = DEFAULT_BRANCHING_PROBABILITY):
     lst = MultiList()
-    paths = OrderedSet()
-    appendable_paths = OrderedSet()
+    paths = []
+    appendable_paths = []
     result = [[], [], [], []]
     for _ in range(items_count):
         full_appending_time_start = time_ns()
         value_to_add = randint(*VALUE_GENERATION_RANGE)
         if paths:
             if random() < branching_probability:
-                parent_path = choice((*paths,))
+                parent_path = paths[randint(0, len(paths) - 1 if len(paths) > 0 else 0)]
                 new_path = MultiListPath((*parent_path, 0))
                 if lst.exists(new_path):
-                    parent_path = choice((*appendable_paths,))
+                    parent_path_index = randint(0, len(appendable_paths) - 1 if len(appendable_paths) > 0 else 0)
+                    parent_path = appendable_paths[parent_path_index]
                     path = MultiListPath((*(parent_path[:-1]), parent_path[-1] + 1))
-                    appendable_paths.remove(parent_path)
+                    del appendable_paths[parent_path_index]
                 else:
                     path = new_path
             else:
-                parent_path = choice((*appendable_paths,))
+                parent_path_index = randint(0, len(appendable_paths) - 1 if len(appendable_paths) > 0 else 0)
+                parent_path = appendable_paths[parent_path_index]
                 path = MultiListPath((*(parent_path[:-1]), parent_path[-1] + 1))
-                appendable_paths.remove(parent_path)
+                del appendable_paths[parent_path_index]
         else:
             path = MultiListPath('0')
         main_appending_time_start = time_ns()
         lst.append(value_to_add, path)
         result[0].append(time_ns() - main_appending_time_start)
-        paths.add(HashablePath((*path, )))
-        appendable_paths.add(HashablePath((*path, )))
+        paths.append(HashablePath((*path, )))
+        appendable_paths.append(HashablePath((*path, )))
         result[1].append(time_ns() - full_appending_time_start)
     if print_tree:
         lst.print_all()
@@ -57,7 +59,7 @@ def test(items_count: int, print_tree: bool = False, branching_probability: int 
         searching_time_start = time_ns()
         lst.find(path)
         result[2].append(time_ns() - searching_time_start)
-    for path in paths[::-1]:
+    for path in reversed(paths):
         deleting_time_start = time_ns()
         lst.delete(path)
         result[3].append(time_ns() - deleting_time_start)
