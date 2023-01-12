@@ -16,16 +16,49 @@ class SkipListNode:
 class SkipList:
     def __init__(self, max_level: Callable[[int], int] | int | None = None):
         self.count = 0
-        self.root = []
+        self.root: List[SkipListNode] = []
         self.max_level = max_level if max_level else lambda count: (log2(count) if self.count >= 2 else 1)
 
     def _generate_level_randomly(self):
         max_level = self.max_level if isinstance(self.max_level, int) else self.max_level(self.count)
         min_level = 1
-        return max_level - (log2(randint(2 ** min_level, (2 ** (max_level + 1)) - 1)) // 1) + min_level
+        result = max_level - (log2(randint(2 ** min_level, (2 ** (max_level + 1)) - 1)) // 1) + min_level
+        return min(result, len(self.root))
 
-    def _find_node(self, return_previous_if_absent: bool = False) -> SkipListNode | None:
-        pass
+    def _find_node(self, value, return_previous_if_absent: bool = False) -> SkipListNode | None:
+        if not self.root:
+            return None
+        node = self.root[-1]
+        for level in reversed(range(len(self.root))):
+            while True:
+                if node.value > value:
+                    return None
+                if node.value == value:
+                    return node
+                if node.value < value:
+                    if not node.right[level]:
+                        break
+                    if node.right[level].value > value:
+                        break
+                    node = node.right[level]
+        if return_previous_if_absent:
+            return node
+
+    def _find_previous_node(self, value) -> SkipListNode | None:
+        if not self.root:
+            return None
+        node = self.root[-1]
+        for level in reversed(range(len(self.root))):
+            while True:
+                if node.value >= value:
+                    return None
+                if node.value < value:
+                    if not node.right[level]:
+                        break
+                    if node.right[level].value >= value:
+                        break
+                    node = node.right[level]
+        return node
 
     def from_iterable(self, source: Iterable, tree_like: bool = False):
         pass
@@ -37,7 +70,7 @@ class SkipList:
         pass
 
     def present(self, value) -> bool:
-        pass
+        return self._find_node(value) is not None
 
     def copy(self) -> "SkipList":
         result = SkipList(self.max_level)
