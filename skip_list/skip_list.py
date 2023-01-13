@@ -18,11 +18,11 @@ class SkipList:
         self.root: List[SkipListNode] = []
         self.max_level = max_level if max_level else lambda count: (log2(count) // 1 if self.count >= 2 else 1)
 
-    def _generate_level_randomly(self) -> int:
+    def _generate_levels_count_randomly(self) -> int:
         max_level = self.max_level if isinstance(self.max_level, int) else self.max_level(self.count)
         min_level = 1
         result = max_level - int(log2(randint(2 ** min_level, (2 ** (max_level + 1)) - 1)) // 1) + min_level
-        return min(result, len(self.root) + 1) - 1
+        return min(result, len(self.root) + 1)
 
     def _find_node(self, value, return_previous_if_absent: bool = False) -> SkipListNode | None:
         if not self.root:
@@ -67,7 +67,7 @@ class SkipList:
 
     def append(self, value):
         prev_node_search = self._find_previous_node(value)
-        new_node = SkipListNode(value, self._generate_level_randomly())
+        new_node = SkipListNode(value, self._generate_levels_count_randomly())
         if prev_node_search:
             prev_node, connections = prev_node_search
             prev_node_right = prev_node.right
@@ -77,8 +77,11 @@ class SkipList:
             raise ValueError("This value already exists in the list")
         for level in range(len(new_node.right)):
             new_node.right[level] = connections[level]
-            if connections[level]:
+            if len(connections) <= level:
+                self.root.append(new_node)
+            elif connections[level]:
                 connections[level].right[level] = new_node
+        self.count += 1
 
     def delete(self, value):
         pass
