@@ -62,8 +62,8 @@ class SkipList:
                     node = node.right[level]
         return node, left_connections
 
-    def from_iterable(self, source: Iterable, tree_like: bool = False):
-        pass
+    # def from_iterable(self, source: Iterable, tree_like: bool = False):
+    #     pass
 
     def append(self, value):
         prev_node_search = self._find_previous_node(value)
@@ -81,9 +81,19 @@ class SkipList:
                 self.root.append(new_node)
             elif connections[level]:
                 connections[level].right[level] = new_node
+            if not self.root[level]:
+                self.root[level] = new_node
         self.count += 1
 
     def delete(self, value):
+        prev_node_search = self._find_previous_node(value)
+        if prev_node_search:
+            prev_node, connections = prev_node_search
+            prev_node_right = prev_node.right
+        else:
+            prev_node_right = connections = self.root
+        if prev_node_right[0] and prev_node_right[0].value != value:
+            raise ValueError("This value does not exist in the list")
         pass
 
     def present(self, value) -> bool:
