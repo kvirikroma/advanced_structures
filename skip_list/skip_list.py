@@ -1,4 +1,4 @@
-from typing import List, Callable, Iterable, Any
+from typing import List, Callable, Iterable
 from math import log2
 from random import randint
 
@@ -94,6 +94,14 @@ class SkipList:
 
     def __iter__(self):
         return self._iterate()
+
+    def print(self):
+        levels = [[] for _ in self.root.right]
+        for node in self._iterate(get_raw_nodes=True):
+            for level in range(node.levels):
+                levels[level].append(f'"{node.value}"' if isinstance(node.value, str) else str(node.value))
+        for level in range(len(levels)):
+            print(f"Level {level}:", ", ".join(levels[level]))
 
     def delete(self, value):
         update: List[SkipListNode | None] = [None for _ in range(self.levels)]
