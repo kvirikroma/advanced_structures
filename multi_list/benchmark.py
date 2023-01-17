@@ -1,11 +1,10 @@
-import argparse
 from concurrent.futures import ProcessPoolExecutor
-from random import random, choice, randint
+from random import random, randint
 from time import time_ns
 from typing import Hashable
-from ordered_set import OrderedSet
 
 from multi_list import MultiList, MultiListPath
+from utils.benchmark import get_args
 
 
 DEFAULT_BRANCHING_PROBABILITY = 0.1
@@ -67,42 +66,7 @@ def test(items_count: int, print_tree: bool = False, branching_probability: int 
 
 
 def main():
-    def positive_int(value):
-        try:
-            int_value = int(value)
-            if int_value <= 0:
-                raise ValueError
-        except ValueError:
-            raise argparse.ArgumentTypeError(f"{value} is an invalid positive int value")
-        return int_value
-        
-    def float_01(value):
-        try:
-            value = float(value)
-            if value < 0:
-                raise ValueError
-            if value > 1:
-                raise ValueError
-        except ValueError:
-            raise argparse.ArgumentTypeError(f"{value} is an invalid value (should be between 0 and 1)")
-        return value
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--iterations", help="Number of iterations", type=positive_int, required=True)
-    parser.add_argument("-c", "--count", help="Count of items to work on", type=positive_int, required=True)
-    parser.add_argument(
-        "-b", "--branching_probability",
-        help="Probability of making an attempt to create a new branch while appending an item",
-        type=float_01, required=False, default=DEFAULT_BRANCHING_PROBABILITY
-    )
-    parser.add_argument(
-        "-p", "--print",
-        help="Print a tree that was built (only for cases when '--iterations' is 1)",
-        required=False, action=argparse.BooleanOptionalAction, default=False
-    )
-    args = parser.parse_args()
-    if args.print and args.iterations != 1:
-        raise ValueError("Cannot print tree when '--iterations' is other than 1")
+    args = get_args(DEFAULT_BRANCHING_PROBABILITY)
     executor = ProcessPoolExecutor()
     addition_time = []
     full_addition_time = []
