@@ -37,7 +37,7 @@ class SkipList:
 
     def from_iterable(self, source: Iterable, tree_like: bool = False):
         if tree_like:
-            sorted_data = [[i, None] for i in sorted(source)]
+            sorted_data = [[i, None] for i in sorted(set(source))]
 
             def mark_levels(data: List[List], level: int):
                 if not data:
@@ -60,7 +60,7 @@ class SkipList:
             for value, lvl in sorted_data:
                 self._append(value, lvl)
         else:
-            for i in source:
+            for i in set(source):
                 self.append(i)
 
     def _append(self, value, level: int | None = None):
@@ -88,7 +88,7 @@ class SkipList:
         self._append(value)
 
     def _iterate(self, include_levels: bool = False, get_raw_nodes: bool = False):
-        if not self.root:
+        if not self.root.right:
             return
         node = self.root.right[0]
         while node:
@@ -104,7 +104,9 @@ class SkipList:
             for level in range(node.levels):
                 levels[level].append(f'"{node.value}"' if isinstance(node.value, str) else str(node.value))
         for level in range(len(levels)):
-            print(f"Level {level}:", ", ".join(levels[level]))
+            print(f"Level {level}:", '[' + ", ".join(levels[level]) + ']')
+        if not levels:
+            print("Level 0:", '[]')
 
     def delete(self, value):
         update: List[SkipListNode | None] = [None for _ in range(self.levels)]
@@ -113,14 +115,14 @@ class SkipList:
             while current.right[i] and current.right[i].value < value:
                 current = current.right[i]
             update[i] = current
-        current = current.right[0]
+        current = current.right[0] if current.right else None
         if current is None or current.value != value:
             raise ValueError("This value does not exist in the list")
         for i in range(self.levels):
             if update[i].right[i] != current:
                 break
             update[i].right[i] = current.right[i]
-        while self.root and self.root.right[-1] is None:
+        while self.root.right and self.root.right[-1] is None:
             del self.root.right[-1]
         self._count -= 1
 
@@ -129,7 +131,7 @@ class SkipList:
         for i in range(self.levels - 1, -1, -1):
             while current.right[i] and current.right[i].value < value:
                 current = current.right[i]
-        current = current.right[0]
+        current = current.right[0] if current.right else None
         return current and current.value == value
 
     def copy(self) -> "SkipList":

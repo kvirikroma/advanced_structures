@@ -30,7 +30,7 @@ class CommandInterface:
     def help():
         pass
 
-    def control_item_type(self, action: str, item_type: str = None):
+    def control_item_type(self, action: str, item_type: str = None) -> bool:
         if action == 'get':
             print(self.item_type)
         elif action == 'set':
@@ -42,8 +42,11 @@ class CommandInterface:
                 self.item_type = float
             else:
                 print("Error: type should be in [int, str, float]")
+                return False
         else:
             print("Invalid action type: must be 'get' or 'set'")
+            return False
+        return True
 
     def copy(self, action: str, copy_method_name: str):
         if action == "make":
