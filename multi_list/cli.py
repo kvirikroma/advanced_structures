@@ -1,12 +1,13 @@
 from multi_list import MultiList, MultiListPath
+from utils.cli import CommandInterface
 
 
-class MultiListCommandInterface:
+class MultiListCommandInterface(CommandInterface):
     def __init__(self):
+        super().__init__()
         self.lst: MultiList = MultiList()
         self.lst_copy: MultiList | None = None
         self.path_separator: str = MultiListPath('').separator
-        self.item_type: type = str
         self.commands = {
             "type": self.control_item_type,
             "separator": self.control_path_separator,
@@ -22,27 +23,9 @@ class MultiListCommandInterface:
             "delete": self.delete_item,
             "delete-level": self.delete_level,
             "delete-branch": self.delete_branch,
-            "copy": self.copy,
+            "copy": lambda action: self.copy(action, 'make_full_copy'),
             "clear": self.clear
         }
-
-    def __call__(self):
-        while True:
-            try:
-                command = [i for i in input(">> ").split() if i]
-            except KeyboardInterrupt:
-                print()
-                continue
-            if not command:
-                continue
-            if command[0] not in self.commands:
-                print(f"Unrecognized command '{command[0]}'")
-                print("Enter 'help' for more information")
-                continue
-            try:
-                self.commands[command[0]](*command[1:])
-            except TypeError:
-                print("Invalid parameters")
 
     @staticmethod
     def help():
@@ -66,21 +49,6 @@ class MultiListCommandInterface:
             "copy make|restore|switch|delete - control the copy of list\n"
             "clear - clear the multi-list\n"
         )
-
-    def control_item_type(self, action: str, item_type: str = None):
-        if action == 'get':
-            print(self.item_type)
-        elif action == 'set':
-            if item_type == 'int':
-                self.item_type = int
-            elif item_type == 'str':
-                self.item_type = str
-            elif item_type == 'float':
-                self.item_type = float
-            else:
-                print("Error: type should be in [int, str, float]")
-        else:
-            print("Invalid action type: must be 'get' or 'set'")
 
     def control_path_separator(self, action: str, separator: str = None):
         if action == 'get':
@@ -192,24 +160,6 @@ class MultiListCommandInterface:
             self.lst.delete_child(path)
         except LookupError as err:
             return print(f"Error: {err.args[0]}")
-
-    def copy(self, action: str):
-        if action == "make":
-            self.lst_copy = self.lst.make_full_copy()
-        elif action == "restore":
-            if self.lst_copy is None:
-                return print("No copy available, nothing to restore")
-            self.lst = self.lst_copy.make_full_copy()
-        elif action == "switch":
-            if self.lst_copy is None:
-                return print("No copy available, nothing to switch with")
-            self.lst, self.lst_copy = self.lst_copy, self.lst
-        elif action == "delete":
-            if self.lst_copy is None:
-                return print("No copy available, nothing to delete")
-            self.lst_copy = None
-        else:
-            print(f"Error: unknown action '{action}'")
 
     def clear(self):
         self.lst.clear()

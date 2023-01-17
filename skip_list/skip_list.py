@@ -18,15 +18,18 @@ class SkipListNode:
 
 class SkipList:
     def __init__(self, max_level: Callable[[int], int] | int | None = None):
-        self.count = 0
+        self._count = 0
         self.root = SkipListNode(None, 0)
         self.max_level = max_level if max_level else lambda count: (log2(count) // 1 if count >= 2 else 1)
 
     def _generate_levels_count_randomly(self) -> int:
-        max_level = self.max_level if isinstance(self.max_level, int) else int(self.max_level(self.count))
+        max_level = self.max_level if isinstance(self.max_level, int) else int(self.max_level(self._count))
         min_level = 1
         result = int(max_level - int(log2(randint(2 ** min_level, (2 ** (max_level + 1)) - 1)) // 1) + min_level)
         return min(result, self.root.levels + 1)
+
+    def __len__(self):
+        return self._count
 
     @property
     def levels(self):
@@ -51,7 +54,7 @@ class SkipList:
             mark_levels(
                 sorted_data,
                 self.max_level if isinstance(self.max_level, int) else int(
-                    self.max_level(self.count + (len(sorted_data) // 1.5))
+                    self.max_level(self._count + (len(sorted_data) // 1.5))
                 )
             )
             for value, lvl in sorted_data:
@@ -72,14 +75,14 @@ class SkipList:
             update[i] = current
         current = current.right[0]
         if current is not None and current.value == value:
-            raise ValueError("This value already exists in the list")
+            raise ValueError(f"This value ({value}) already exists in the list")
         if node.levels >= self.levels:
             for i in range(self.levels, node.levels):
                 update[i] = self.root
         for i in range(node.levels):
             node.right[i] = update[i].right[i]
             update[i].right[i] = node
-        self.count += 1
+        self._count += 1
 
     def append(self, value):
         self._append(value)
@@ -119,7 +122,7 @@ class SkipList:
             update[i].right[i] = current.right[i]
         while self.root and self.root.right[-1] is None:
             del self.root.right[-1]
-        self.count -= 1
+        self._count -= 1
 
     def present(self, value) -> bool:
         current = self.root
@@ -131,7 +134,7 @@ class SkipList:
 
     def copy(self) -> "SkipList":
         result = SkipList(self.max_level)
-        result.count = self.count
+        result._count = self._count
         source_node = SkipListNode(None, 1)
         source_node.right[0] = self.root.right[0] if self.root.right else None
         destination_node = start_node = SkipListNode(None, 1)
