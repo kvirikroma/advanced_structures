@@ -15,7 +15,7 @@ def test(items_count: int, print_list: bool = False, as_tree: bool = False):
         while len(items_in_list) < items_count:
             items_in_list.add(randint(0, items_count * 10))
         appending_time_start = time_ns()
-        lst.from_iterable(items_in_list)
+        lst.from_iterable(items_in_list, tree_like=True)
         whole_appending_time = time_ns() - appending_time_start
         result[0] = [whole_appending_time // items_count for _ in range(items_count)]
     else:
