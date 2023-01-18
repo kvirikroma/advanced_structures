@@ -4,7 +4,7 @@ from time import time_ns
 from typing import Hashable
 
 from multi_list import MultiList, MultiListPath
-from utils.benchmark import get_args
+from utils.benchmark import get_args, print_results, float_01
 
 
 DEFAULT_BRANCHING_PROBABILITY = 0.1
@@ -66,7 +66,13 @@ def test(items_count: int, print_tree: bool = False, branching_probability: int 
 
 
 def main():
-    args = get_args(DEFAULT_BRANCHING_PROBABILITY)
+    args = get_args([
+        lambda parser: parser.add_argument(
+            "-b", "--branching_probability",
+            help="Probability of making an attempt to create a new branch while appending an item",
+            type=float_01, required=False, default=DEFAULT_BRANCHING_PROBABILITY
+        )
+    ])
     executor = ProcessPoolExecutor()
     addition_time = []
     full_addition_time = []
@@ -84,12 +90,7 @@ def main():
         executor.shutdown(wait=False, cancel_futures=True)
     for name, results in (("Clear addition", addition_time), ("Full addition", full_addition_time),
                           ("Search", search_time), ("Deletion", deletion_time)):
-        average = (sum(results) / len(results)) / 1000
-        print(f"{name} time (μs):")
-        print("\tAverage:", average)
-        print("\tMin:", min(results) / 1000)
-        print("\tMax:", max(results) / 1000)
-        print("\tStandard deviation", (sum((average - (i / 1000)) ** 2 for i in results) / len(results)) ** 0.5)
+        print_results(name, results)
 
 
 if __name__ == "__main__":
